@@ -173,11 +173,19 @@ class GFHANNANSMS_Pro_SQL {
 		$results    = $wpdb->get_results( $sql, ARRAY_A );
 
 		if ( empty( $results ) ) {
-			return array();
+			return array(
+				'id'        => 0,
+				'form_id'   => 0,
+				'is_active' => 1,
+				'meta'      => array(),
+			);
 		}
 
 		$result         = $results[0];
 		$result["meta"] = maybe_unserialize( $result["meta"] );
+		if ( empty( $result["meta"] ) || ! is_array( $result["meta"] ) ) {
+			$result["meta"] = array();
+		}
 
 		return $result;
 	}

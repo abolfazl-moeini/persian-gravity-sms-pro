@@ -36,9 +36,28 @@ class GFHANNANSMS_Pro_Configurations {
 		}
 
 		$config = empty( $id ) ? array(
+			'id'        => 0,
+			'form_id'   => ! empty( $_get_form_id ) ? $_get_form_id : 0,
 			'is_active' => true,
 			'meta'      => array(),
 		) : GFHANNANSMS_Pro_SQL::get_feed( $id );
+
+		if ( empty( $config ) || ! is_array( $config ) ) {
+			$config = array(
+				'id'        => 0,
+				'form_id'   => ! empty( $_get_form_id ) ? $_get_form_id : 0,
+				'is_active' => true,
+				'meta'      => array(),
+			);
+		}
+
+		if ( empty( $config['meta'] ) || ! is_array( $config['meta'] ) ) {
+			$config['meta'] = array();
+		}
+
+		if ( ! isset( $config['is_active'] ) ) {
+			$config['is_active'] = true;
+		}
 
 		if ( empty( $_get_form_id ) && ! empty( $config['form_id'] ) ) {
 			$_get_form_id = absint( $config['form_id'] );
