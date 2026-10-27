@@ -123,8 +123,15 @@ class GFHANNANSMS_Form_Send {
 
 			$client1 = $client2 = $sep = '';
 
-			if ( isset( $feed["meta"]["customer_field_clientnum"] ) && rgpost( 'input_' . str_replace( ".", "_", $feed["meta"]["customer_field_clientnum"] ) ) ) {
-				$client1 = self::change_mobile( sanitize_text_field( rgpost( 'input_' . str_replace( ".", "_", $feed["meta"]["customer_field_clientnum"] ) ) ), $code );
+			if ( isset( $feed["meta"]["customer_field_clientnum"] ) ) {
+				$field_key = $feed["meta"]["customer_field_clientnum"];
+				$raw_client_num = rgpost( 'input_' . str_replace( ".", "_", $field_key ) );
+				if ( empty( $raw_client_num ) && ! empty( $entry[ $field_key ] ) ) {
+					$raw_client_num = $entry[ $field_key ];
+				}
+				if ( ! empty( $raw_client_num ) ) {
+					$client1 = self::change_mobile( sanitize_text_field( $raw_client_num ), $code );
+				}
 			}
 
 			if ( ! empty( $feed["meta"]["to_c"] ) ) {

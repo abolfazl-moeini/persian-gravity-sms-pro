@@ -87,17 +87,13 @@ $url = "https://api.kavenegar.com/v1/$username/account/info.json";
 			$sms_response = @file_get_contents( $url );
 		}
 		
-				$arr = json_decode($sms_response, true);
-if($arr['return']['status']=='200')
-{
-
-return true;
-}
-else	
-{
-echo $arr['return']['status'];
-return false;
-}
+			$arr = json_decode($sms_response, true);
+			if ( isset( $arr['return']['status'] ) && $arr['return']['status'] == '200' ) {
+				return 'OK';
+			} else {
+				$fault = ! empty( $arr['return']['message'] ) ? $arr['return']['message'] : ( ! empty( $arr['return']['status'] ) ? (string) $arr['return']['status'] : __( 'Unknown Error', 'GF_SMS' ) );
+				return $fault;
+			}
 		
 		}
 		
