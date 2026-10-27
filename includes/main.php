@@ -4,7 +4,7 @@
 
 class GFHANNANSMS_Pro {
 
-	public static $version = '2.3.0';
+	public static $version = '1.1.0';
 	public static $gf_version = '1.9.10';
 	public static $stored_credit;
 	public static $get_option;

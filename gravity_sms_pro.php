@@ -2,7 +2,7 @@
 /*
 Plugin Name: پیامک گرویتی فرم
 Description: The most comprehensive SMS plugin for Gravity Forms
-Version: 1.0
+Version: 1.1.0
 Plugin URI: https://gravityforms.ir/9975/
 Author: گرویتی فرم پارسی
 Author URI: https://gravityforms.ir

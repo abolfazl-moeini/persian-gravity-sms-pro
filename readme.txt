@@ -1,11 +1,12 @@
-﻿=== Persian Gravity SMS Pro ===
+=== Persian Gravity SMS Pro ===
 author: گرویتی فرم فارسی
 Contributors: persiangravityforms,melipayamak
 author URI: https://gravityforms.ir/
 plugin URI: https://gravityforms.ir/
 Tags: gravityforms,sms,gravity sms pro,پیامک گرویتی فرم,iran,گرویتی فرم فارسی,گرویتی فرم
 Requires at least: 5.0
-Tested up to: 5.3
+Tested up to: 6.7
+Stable tag: 1.1.0
 License: GPLv2 or later
 
 افزونه پیامک گرویتی فرم فارسی
@@ -47,11 +48,25 @@ License: GPLv2 or later
 You can read complete documentations on the [gravityforms.ir](https://gravityforms.ir)
 
 == Changelog ==
+= 1.1.0 =
+* افزودن درگاه پیامک ایران‌پیامک (IranPayamak) به همراه استعلام مانده اعتبار
+* سازگاری با نگارش‌های جدید Gravity Forms (3.0+) و جایگزینی کلاس منسوخ‌شده RGForms با GFForms
+* اصلاح مسیردهی ویرایش فید در بخش تنظیمات فرم (Form Settings) و بارگذاری صحیح استایل‌های ادمین گرویتی‌فرم
+* امن‌سازی کامل کوئری‌های دیتابیس با wpdb::prepare و مقابله با SQL Injection
+* اعمال Two-Gate Security و بررسی دسترسی‌ها (Capability) و اعتبارسنجی Nonce در تمامی متدهای AJAX و فرم‌ها
+* غیرفعال‌سازی هندلرهای ناامن nopriv در AJAX
+* ارتقای ساختار جداول افزونه به موتور استاندارد InnoDB
+* بهبود هندلینگ پاسخ درگاه کاوه‌نگار، حذف خروجی‌های اضافی stdout و فال‌بک استخراج شماره همراه کاربر
+* پشتیبانی کامل از فایل‌های ترجمه محلی با افزودن فیلتر بارگذاری فایل‌های mo
+
 = 1.0 =
 * first version
 
 
 == Upgrade Notice ==
+= 1.1.0 =
+* به‌روزرسانی امنیتی و پایداری به همراه سازگاری کامل با نگارش‌های جدید Gravity Forms و افزوده شدن درگاه ایران‌پیامک.
+
 = 1.0 =
 * first version
 == Traducciones ==
