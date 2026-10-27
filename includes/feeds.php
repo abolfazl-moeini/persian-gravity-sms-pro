@@ -168,13 +168,13 @@ class GFHANNANSMS_Pro_Feeds {
 									<?php if ( ! $show ) { ?>
                                         <td class="column-title">
                                             <strong>
-                                                <a href="admin.php?page=gf_hannansms&view=edit&id=<?php echo $feed["id"] ?>"
+                                                <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . absint( $feed["form_id"] ) . '&fid=' . absint( $feed["id"] ) ) ); ?>"
                                                    title="<?php _e( "Edit Config", "GF_SMS" ) ?>"><?php echo $feed["id"] ?></a>
                                             </strong>
                                             <div class="row-actions">
 													<span class="edit">
 														<a title="<?php _e( "Configuration", "GF_SMS" ) ?>"
-                                                           href="admin.php?page=gf_hannansms&view=edit&id=<?php echo $feed["id"] ?>"><?php _e( "Configuration", "GF_SMS" ) ?></a>
+                                                           href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . absint( $feed["form_id"] ) . '&fid=' . absint( $feed["id"] ) ) ); ?>"><?php _e( "Configuration", "GF_SMS" ) ?></a>
 														|
 													</span>
                                                 <span class="trash">
@@ -188,13 +188,13 @@ class GFHANNANSMS_Pro_Feeds {
                                         <td style="text-align:center"><?php echo $feed["form_id"] ?> </td>
                                         <td class="column-title">
                                             <strong>
-                                                <a href="admin.php?page=gf_hannansms&view=edit&id=<?php echo $feed["id"] ?>"
+                                                <a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . absint( $feed["form_id"] ) . '&fid=' . absint( $feed["id"] ) ) ); ?>"
                                                    title="<?php _e( "Edit Config", "GF_SMS" ) ?>"><?php echo $feed["form_title"] ?></a>
                                             </strong>
                                             <div class="row-actions">
 													<span class="edit">
 														<a title="<?php _e( "Configuration", "GF_SMS" ) ?>"
-                                                           href="admin.php?page=gf_hannansms&view=edit&id=<?php echo $feed["id"] ?>"><?php _e( "Configuration", "GF_SMS" ) ?></a>
+                                                           href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . absint( $feed["form_id"] ) . '&fid=' . absint( $feed["id"] ) ) ); ?>"><?php _e( "Configuration", "GF_SMS" ) ?></a>
 														|
 													</span>
                                                 <span class="edit">
@@ -268,7 +268,12 @@ class GFHANNANSMS_Pro_Feeds {
 							?>
                             <tr>
                                 <td colspan="<?php echo ! $show ? '5' : '8' ?>" style="padding:20px;">
-									<?php echo sprintf( __( "You don't have any SMS feeds configured. Let's go %screate one%s!", "GF_SMS" ), '<a href="admin.php?page=gf_hannansms&view=edit&id=0&fid=' . absint( rgget( "id" ) ) . '">', "</a>" ); ?>
+									<?php
+									$create_feed_url = ! $show
+										? admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . absint( rgget( "id" ) ) . '&fid=0' )
+										: admin_url( 'admin.php?page=gf_hannansms&view=edit&id=0' );
+									echo sprintf( __( "You don't have any SMS feeds configured. Let's go %screate one%s!", "GF_SMS" ), '<a href="' . esc_url( $create_feed_url ) . '">', "</a>" );
+									?>
                                 </td>
                             </tr>
 							<?php
@@ -320,16 +325,25 @@ class GFHANNANSMS_Pro_Feeds {
 	}
 
 	public static function sms_form_settings_page() {
-		GFFormSettings::page_header(); ?>
+		GFFormSettings::page_header();
 
+		if ( isset( $_GET['fid'] ) ) {
+			GFHANNANSMS_Pro_Configurations::configuration();
+		} else {
+			$form_id     = absint( rgget( 'id' ) );
+			$add_new_url = admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . $form_id . '&fid=0' );
+			?>
+            <h3>
+                <span>
+                    <i class="fa fa-mobile"></i> <?php esc_html_e( 'SMS', 'GF_SMS' ); ?>
+                    <a id="add-new-confirmation" class="add-new-h2"
+                       href="<?php echo esc_url( $add_new_url ); ?>"><?php esc_html_e( 'Add New', 'GF_SMS' ); ?></a>
+                </span>
+            </h3>
 
-        <h3><span><i class="fa fa-mobile"></i> <?php esc_html_e( 'SMS', 'GF_SMS' ) ?>
-                <a id="add-new-confirmation" class="add-new-h2"
-                   href="<?php echo esc_url( admin_url( 'admin.php?page=gf_hannansms&view=edit&id=0&fid=' . absint( rgget( "id" ) ) ) ) ?>"><?php esc_html_e( 'Add New', 'GF_SMS' ) ?></a></span>
-        </h3>
+			<?php self::feeds( 'settings' ); ?>
+		<?php }
 
-		<?php self::feeds( 'settings' ); ?>
-
-		<?php GFFormSettings::page_footer();
+		GFFormSettings::page_footer();
 	}
 }

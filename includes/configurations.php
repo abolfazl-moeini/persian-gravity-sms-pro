@@ -15,132 +15,171 @@ class GFHANNANSMS_Pro_Configurations {
 
 	public static function configuration() {
 
-		wp_register_style( 'gform_admin_sms', GFCommon::get_base_url() . '/css/admin.css' );
-		wp_print_styles( array( 'jquery-ui-styles', 'gform_admin_sms', 'wp-pointer' ) ); ?>
+		if ( wp_style_is( 'gform_admin', 'registered' ) ) {
+			wp_enqueue_style( 'gform_admin' );
+		}
+		if ( wp_style_is( 'gform_settings', 'registered' ) ) {
+			wp_enqueue_style( 'gform_settings' );
+		}
+		if ( wp_style_is( 'gform_font_awesome', 'registered' ) ) {
+			wp_enqueue_style( 'gform_font_awesome' );
+		}
+		wp_print_styles( array( 'jquery-ui-styles', 'gform_admin', 'gform_settings', 'wp-pointer' ) );
 
-        <div class="wrap gforms_edit_form gf_browser_gecko">
+		$is_form_settings = ( rgget( 'page' ) === 'gf_edit_forms' || rgget( 'view' ) === 'settings' || rgget( 'subview' ) === 'sms' );
 
-			<?php
-			$id        = ! rgempty( "hannansms_setting_id" ) ? rgpost( "hannansms_setting_id" ) : absint( rgget( "id" ) );
-			$config    = empty( $id ) ? array(
-				"is_active" => true,
-				"meta"      => array()
-			) : GFHANNANSMS_Pro_SQL::get_feed( $id );
-			$get_feeds = GFHANNANSMS_Pro_SQL::get_feeds();
-			$form_name = '';
+		if ( $is_form_settings ) {
+			$_get_form_id = absint( rgget( 'id' ) );
+			$id           = ! rgempty( 'hannansms_setting_id' ) ? absint( rgpost( 'hannansms_setting_id' ) ) : ( isset( $_GET['fid'] ) ? absint( rgget( 'fid' ) ) : 0 );
+		} else {
+			$id           = ! rgempty( 'hannansms_setting_id' ) ? absint( rgpost( 'hannansms_setting_id' ) ) : absint( rgget( 'id' ) );
+			$_get_form_id = absint( rgget( 'fid' ) );
+		}
 
-			$_get_form_id = ! empty( $config["form_id"] ) ? $config["form_id"] : rgget( 'fid' );
+		$config = empty( $id ) ? array(
+			'is_active' => true,
+			'meta'      => array(),
+		) : GFHANNANSMS_Pro_SQL::get_feed( $id );
 
-			foreach ( (array) $get_feeds as $get_feed ) {
-				if ( $get_feed['id'] == $id ) {
-					$form_name = $get_feed['form_title'];
+		if ( empty( $_get_form_id ) && ! empty( $config['form_id'] ) ) {
+			$_get_form_id = absint( $config['form_id'] );
+		}
+
+		$get_feeds = GFHANNANSMS_Pro_SQL::get_feeds();
+		$form_name = '';
+
+		foreach ( (array) $get_feeds as $get_feed ) {
+			if ( $get_feed['id'] == $id ) {
+				$form_name = $get_feed['form_title'];
+			}
+		}
+
+		$form_meta = ! empty( $_get_form_id ) ? RGFormsModel::get_form_meta( $_get_form_id ) : array();
+		if ( empty( $form_name ) && ! empty( $form_meta['title'] ) ) {
+			$form_name = $form_meta['title'];
+		}
+
+		$settings = GFHANNANSMS_Pro::get_option();
+		$is_OK    = ( ! empty( $settings["ws"] ) && $settings["ws"] != 'no' );
+
+		if ( ! $is_OK ) {
+			echo '<div class="notice notice-error error inline"><p>' . sprintf( __( "To get started, please configure your %sGravity SMS Pro Settings%s and set Gateway.", "GF_SMS" ), '<a href="' . esc_url( admin_url( 'admin.php?page=gf_settings&subview=gf_sms_pro' ) ) . '">', '</a>' ) . '</p></div>';
+			return;
+		}
+
+		if ( ! rgempty( "gf_hannansms_submit" ) ) {
+
+			check_admin_referer( "update", "gf_hannansms_feed" );
+
+			$config["form_id"] = absint( rgpost( "gf_hannansms_form" ) );
+			if ( empty( $config["form_id"] ) && ! empty( $_get_form_id ) ) {
+				$config["form_id"] = absint( $_get_form_id );
+			}
+			$config["meta"]["from"]                      = rgpost( "gf_hannansms_from" );
+			$config["meta"]["to"]                        = rgpost( "gf_hannansms_to" );
+			$config["meta"]["to_c"]                      = rgpost( "gf_hannansms_to_c" );
+			$config["meta"]["when"]                      = rgpost( "gf_hannansms_when" );
+			$config["meta"]["message"]                   = rgpost( "gf_hannansms_message" );
+			$config["meta"]["message_c"]                 = rgpost( "gf_hannansms_message_c" );
+			$config["meta"]["gf_sms_change_code"]        = rgpost( 'gf_sms_change_code' );
+			$config["meta"]["gf_change_code_type"]       = rgpost( "gf_change_code_type" );
+			$config["meta"]["gf_code_static"]            = rgpost( "gf_code_static" );
+			$config["meta"]["gf_code_dyn"]               = rgpost( "hannansms_gf_code_dyn" );
+			$config["meta"]["gf_sms_is_gateway_checked"] = rgpost( 'gf_sms_is_gateway_checked' );
+			$config["meta"]["customer_field_clientnum"]  = rgpost( "hannansms_customer_field_clientnum" );
+
+			//----------------------
+			$config["meta"]["adminsms_conditional_enabled"]  = rgpost( 'gf_adminsms_conditional_enabled' );
+			$config["meta"]["adminsms_conditional_type"]     = rgpost( 'gf_adminsms_conditional_type' );
+			$config["meta"]["adminsms_conditional_field_id"] = rgpost( 'gf_adminsms_conditional_field_id' );
+			$config["meta"]["adminsms_conditional_operator"] = rgpost( 'gf_adminsms_conditional_operator' );
+			$config["meta"]["adminsms_conditional_value"]    = rgpost( 'gf_adminsms_conditional_value' );
+			//-----------------
+			$config["meta"]["clientsms_conditional_enabled"]  = rgpost( 'gf_clientsms_conditional_enabled' );
+			$config["meta"]["clientsms_conditional_type"]     = rgpost( 'gf_clientsms_conditional_type' );
+			$config["meta"]["clientsms_conditional_field_id"] = rgpost( 'gf_clientsms_conditional_field_id' );
+			$config["meta"]["clientsms_conditional_operator"] = rgpost( 'gf_clientsms_conditional_operator' );
+			$config["meta"]["clientsms_conditional_value"]    = rgpost( 'gf_clientsms_conditional_value' );
+			//------------------------
+
+
+			$safe_data = array();
+			foreach ( $config["meta"] as $key => $val ) {
+
+				if ( in_array( $key, array(
+					'adminsms_conditional_operator',
+					'clientsms_conditional_operator'
+				) ) ) {
+					$safe_data[ $key ] = $val;
+				} else if ( in_array( $key, array( 'message', 'message_c' ) ) ) {
+					$safe_data[ $key ] = wp_kses( $val, array( 'br' => array() ) );
+				} else if ( ! is_array( $val ) ) {
+					$safe_data[ $key ] = sanitize_text_field( $val );
+				} else {
+					$safe_data[ $key ] = array_map( 'sanitize_text_field', $val );
 				}
+			}
+
+			$config["meta"] = $safe_data;
+
+			$id = GFHANNANSMS_Pro_SQL::update_feed( $id, $config["form_id"], $config["is_active"], $config["meta"] );
+
+			if ( ! headers_sent() ) {
+				if ( $is_form_settings ) {
+					wp_redirect( admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . absint( $config["form_id"] ) . '&fid=' . $id . '&updated=true' ) );
+				} else {
+					wp_redirect( admin_url( 'admin.php?page=gf_hannansms&view=edit&id=' . $id . '&updated=true' ) );
+				}
+				exit;
 			}
 			?>
 
-            <h2 class="gf_admin_page_title"><?php _e( "SMS configuration for forms", "GF_SMS" ) ?>
+            <div class="updated fade"
+                 style="padding:6px"><?php
+				$back_url = $is_form_settings
+					? admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . absint( $config["form_id"] ) )
+					: admin_url( 'admin.php?page=gf_hannansms' );
+				echo sprintf( __( "Feed Updated. %sback to list%s", "GF_SMS" ), "<a href='" . esc_url( $back_url ) . "'>", "</a>" );
+				?></div>
+
+			<?php
+		}
+
+		if ( rgget( 'updated' ) == 'true' ) {
+			$id       = empty( $id ) && isset( $_GET['id'] ) ? rgget( 'id' ) : $id;
+			$back_url = $is_form_settings
+				? admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . absint( $_get_form_id ) )
+				: admin_url( 'admin.php?page=gf_hannansms' );
+			?>
+
+            <div class="updated fade"
+                 style="padding:6px"><?php echo sprintf( __( "Feed Updated. %sback to list%s", "GF_SMS" ), "<a href='" . esc_url( $back_url ) . "'>", "</a>" ); ?></div>
+
+			<?php
+		}
+
+		if ( ! $is_form_settings ) : ?>
+
+        <div class="wrap gforms_edit_form <?php echo esc_attr( GFCommon::get_browser_class() ); ?>">
+
+            <h2 class="gf_admin_page_title"><?php _e( "SMS configuration for forms", "GF_SMS" ); ?>
 
 				<?php if ( ! empty( $_get_form_id ) ) { ?>
                     <span class="gf_admin_page_subtitle">
-					<span class="gf_admin_page_formid"><?php echo sprintf( __( "Feed ID: %s", "GF_SMS" ), $id ) ?></span>
+					<span class="gf_admin_page_formid"><?php echo sprintf( __( "Feed ID: %s", "GF_SMS" ), $id ); ?></span>
 					<span
-                            class="gf_admin_page_formname"><?php echo sprintf( __( "Form Name: %s", "GF_SMS" ), $form_name ) ?></span>
+                            class="gf_admin_page_formname"><?php echo sprintf( __( "Form Name: %s", "GF_SMS" ), $form_name ); ?></span>
 				</span>
 				<?php } ?>
 
             </h2>
             <a class="button add-new-h2" href="admin.php?page=gf_settings&subview=gf_sms_pro"
-               style="margin:8px 9px;"><?php _e( "SMS General settings", "GF_SMS" ) ?></a>
+               style="margin:8px 9px;"><?php _e( "SMS General settings", "GF_SMS" ); ?></a>
 
 			<?php
-			$settings = GFHANNANSMS_Pro::get_option();
-			$is_OK    = ( ! empty( $settings["ws"] ) && $settings["ws"] != 'no' );
-
-			if ( $is_OK ) {
-				echo '<div style="display:inline-table;margin-top:7px !important">';
-				GFHANNANSMS_Pro::show_credit( $settings["cr"], true );
-				echo '</div>';
-			} else {
-				wp_die();
-			}
-
-			if ( ! rgempty( "gf_hannansms_submit" ) ) {
-
-				check_admin_referer( "update", "gf_hannansms_feed" );
-
-				$config["form_id"]                           = absint( rgpost( "gf_hannansms_form" ) );
-				$config["meta"]["from"]                      = rgpost( "gf_hannansms_from" );
-				$config["meta"]["to"]                        = rgpost( "gf_hannansms_to" );
-				$config["meta"]["to_c"]                      = rgpost( "gf_hannansms_to_c" );
-				$config["meta"]["when"]                      = rgpost( "gf_hannansms_when" );
-				$config["meta"]["message"]                   = rgpost( "gf_hannansms_message" );
-				$config["meta"]["message_c"]                 = rgpost( "gf_hannansms_message_c" );
-				$config["meta"]["gf_sms_change_code"]        = rgpost( 'gf_sms_change_code' );
-				$config["meta"]["gf_change_code_type"]       = rgpost( "gf_change_code_type" );
-				$config["meta"]["gf_code_static"]            = rgpost( "gf_code_static" );
-				$config["meta"]["gf_code_dyn"]               = rgpost( "hannansms_gf_code_dyn" );
-				$config["meta"]["gf_sms_is_gateway_checked"] = rgpost( 'gf_sms_is_gateway_checked' );
-				$config["meta"]["customer_field_clientnum"]  = rgpost( "hannansms_customer_field_clientnum" );
-
-				//----------------------
-				$config["meta"]["adminsms_conditional_enabled"]  = rgpost( 'gf_adminsms_conditional_enabled' );
-				$config["meta"]["adminsms_conditional_type"]     = rgpost( 'gf_adminsms_conditional_type' );
-				$config["meta"]["adminsms_conditional_field_id"] = rgpost( 'gf_adminsms_conditional_field_id' );
-				$config["meta"]["adminsms_conditional_operator"] = rgpost( 'gf_adminsms_conditional_operator' );
-				$config["meta"]["adminsms_conditional_value"]    = rgpost( 'gf_adminsms_conditional_value' );
-				//-----------------
-				$config["meta"]["clientsms_conditional_enabled"]  = rgpost( 'gf_clientsms_conditional_enabled' );
-				$config["meta"]["clientsms_conditional_type"]     = rgpost( 'gf_clientsms_conditional_type' );
-				$config["meta"]["clientsms_conditional_field_id"] = rgpost( 'gf_clientsms_conditional_field_id' );
-				$config["meta"]["clientsms_conditional_operator"] = rgpost( 'gf_clientsms_conditional_operator' );
-				$config["meta"]["clientsms_conditional_value"]    = rgpost( 'gf_clientsms_conditional_value' );
-				//------------------------
-
-
-				$safe_data = array();
-				foreach ( $config["meta"] as $key => $val ) {
-
-					if ( in_array( $key, array(
-						'adminsms_conditional_operator',
-						'clientsms_conditional_operator'
-					) ) ) {
-						$safe_data[ $key ] = $val;
-					} else if ( in_array( $key, array( 'message', 'message_c' ) ) ) {
-						$safe_data[ $key ] = wp_kses( $val, array( 'br' => array() ) );
-					} else if ( ! is_array( $val ) ) {
-						$safe_data[ $key ] = sanitize_text_field( $val );
-					} else {
-						$safe_data[ $key ] = array_map( 'sanitize_text_field', $val );
-					}
-				}
-
-				$config["meta"] = $safe_data;
-
-				$id = GFHANNANSMS_Pro_SQL::update_feed( $id, $config["form_id"], $config["is_active"], $config["meta"] );
-
-				if ( ! headers_sent() ) {
-					wp_redirect( admin_url( 'admin.php?page=gf_hannansms&view=edit&id=' . $id . '&updated=true' ) );
-					exit;
-				}
-				?>
-
-                <div class="updated fade"
-                     style="padding:6px"><?php echo sprintf( __( "Feed Updated. %sback to list%s", "GF_SMS" ), "<a href='?page=gf_hannansms'>", "</a>" ) ?></div>
-
-				<?php
-			}
-
-			$_get_form_id = ! empty( $config["form_id"] ) ? $config["form_id"] : rgget( 'fid' );
-
-			if ( rgget( 'updated' ) == 'true' ) {
-
-				$id = empty( $id ) && isset( $_GET['id'] ) ? rgget( 'id' ) : $id; ?>
-
-                <div class="updated fade"
-                     style="padding:6px"><?php echo sprintf( __( "Feed Updated. %sback to list%s", "GF_SMS" ), "<a href='?page=gf_hannansms'>", "</a>" ) ?></div>
-
-				<?php
-			}
+			echo '<div style="display:inline-table;margin-top:7px !important">';
+			GFHANNANSMS_Pro::show_credit( $settings["cr"], true );
+			echo '</div>';
 
 			if ( ! empty( $_get_form_id ) ) { ?>
 
@@ -152,17 +191,17 @@ class GFHANNANSMS_Pro_Configurations {
 						echo GFForms::format_toolbar_menu_items( $menu_items ); ?>
 
                         <li class="gf_form_switcher">
-                            <label for="export_form"><?php _e( 'Select a feed', 'GF_SMS' ) ?></label>
+                            <label for="export_form"><?php _e( 'Select a feed', 'GF_SMS' ); ?></label>
 							<?php
 							$feeds = GFHANNANSMS_Pro_SQL::get_feeds();
 							?>
                             <select name="form_switcher" id="form_switcher"
                                     onchange="GF_SwitchForm(jQuery(this).val());">
-                                <option value=""><?php _e( 'Switch SMS feed', 'GF_SMS' ) ?></option>
+                                <option value=""><?php _e( 'Switch SMS feed', 'GF_SMS' ); ?></option>
 								<?php foreach ( $feeds as $feed ) {
 									$selected = $feed["id"] == $id ? "selected='selected'" : ""; ?>
                                     <option
-                                            value="<?php echo $feed["id"] ?>" <?php echo $selected ?> ><?php echo sprintf( __( 'Form:%s (Feed:%s)', 'GF_SMS' ), $feed["form_title"], $feed["id"] ) ?></option>
+                                            value="<?php echo $feed["id"] ?>" <?php echo $selected ?> ><?php echo sprintf( __( 'Form:%s (Feed:%s)', 'GF_SMS' ), $feed["form_title"], $feed["id"] ); ?></option>
 								<?php } ?>
                             </select>
                         </li>
@@ -175,16 +214,12 @@ class GFHANNANSMS_Pro_Configurations {
                     <ul id="gform_tabs" class="gform_tabs">
 
 						<?php
-						//$title        = '';
 						$get_form     = GFFormsModel::get_form_meta( $_get_form_id );
 						$current_tab  = rgempty( 'subview', $_GET ) ? 'settings' : rgget( 'subview' );
 						$current_tab  = ! empty( $current_tab ) ? $current_tab : '';
 						$setting_tabs = GFFormSettings::get_tabs( $get_form['id'] );
 						if ( ! empty( $current_tab ) ) {
 							foreach ( $setting_tabs as $tab ) {
-								/*if ( $tab['name'] == $current_tab ) {
-									$title = $tab['label'];
-								}*/
 								$query = array(
 									'page'    => 'gf_edit_forms',
 									'view'    => 'settings',
@@ -194,7 +229,7 @@ class GFHANNANSMS_Pro_Configurations {
 								$url   = add_query_arg( $query, admin_url( 'admin.php' ) );
 								echo $tab['name'] == 'sms' ? '<li class="active">' : '<li>';
 								?>
-                                <a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $tab['label'] ) ?></a>
+                                <a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $tab['label'] ); ?></a>
                                 <span></span>
                                 </li>
 								<?php
@@ -204,9 +239,9 @@ class GFHANNANSMS_Pro_Configurations {
                     </ul>
 				<?php } ?>
 
-                <div id="gform_tab_container_<?php echo $_get_form_id ? $_get_form_id : 1 ?>"
+                <div id="gform_tab_container_<?php echo $_get_form_id ? $_get_form_id : 1; ?>"
                      class="gform_tab_container">
-                    <div class="gform_tab_content" id="tab_<?php echo ! empty( $current_tab ) ? $current_tab : '' ?>">
+                    <div class="gform_tab_content" id="tab_<?php echo ! empty( $current_tab ) ? $current_tab : ''; ?>">
                         <div id="form_settings" class="gform_panel gform_panel_form_settings">
                             <h3>
 								<span>
@@ -214,6 +249,20 @@ class GFHANNANSMS_Pro_Configurations {
 									<?php _e( "General configuration", "GF_SMS" ); ?>
 								</span>
                             </h3>
+		<?php else : ?>
+            <div class="gform-settings-panel">
+                <header class="gform-settings-panel__header">
+                    <h4 class="gform-settings-panel__title" style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+                        <span>
+                            <i class="fa fa-mobile"></i> <?php echo empty( $id ) ? esc_html__( 'Add New SMS Feed', 'GF_SMS' ) : esc_html__( 'Edit SMS Feed', 'GF_SMS' ); ?>
+                        </span>
+                        <a class="button add-new-h2" href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=sms&id=' . $_get_form_id ) ); ?>">
+                            <?php esc_html_e( 'Back to Feeds', 'GF_SMS' ); ?>
+                        </a>
+                    </h4>
+                </header>
+                <div class="gform-settings-panel__content">
+		<?php endif; ?>
                             <form method="post" action="" id="gform_form_settings">
 
 								<?php wp_nonce_field( "update", "gf_hannansms_feed" ) ?>
@@ -229,6 +278,9 @@ class GFHANNANSMS_Pro_Configurations {
                                         </td>
                                     </tr>
 
+                                    <?php if ( $is_form_settings ) : ?>
+                                        <input type="hidden" id="gf_hannansms_form" name="gf_hannansms_form" value="<?php echo absint( $_get_form_id ); ?>"/>
+                                    <?php else : ?>
                                     <tr id="hannansms_form_container">
                                         <th>
 											<?php _e( "Select form", "GF_SMS" ); ?>
@@ -250,6 +302,7 @@ class GFHANNANSMS_Pro_Configurations {
                                                  id="hannansms_wait" style="display: none;"/>
                                         </td>
                                     </tr>
+                                    <?php endif; ?>
                                     </tbody>
                                 </table>
 
@@ -709,11 +762,16 @@ class GFHANNANSMS_Pro_Configurations {
                                     </tbody>
                                 </table>
                             </form>
+		<?php if ( ! $is_form_settings ) : ?>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+		<?php else : ?>
+                </div>
+            </div>
+		<?php endif; ?>
         <style type="text/css">
             .delete_admin_condition, .add_admin_condition, .delete_client_condition, .add_client_condition {
                 text-decoration: none !important;
