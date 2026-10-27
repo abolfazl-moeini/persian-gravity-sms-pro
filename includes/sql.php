@@ -69,7 +69,7 @@ class GFHANNANSMS_Pro_SQL {
 			meta longtext,
 			PRIMARY KEY  (id),
 			KEY form_id (form_id)
-		) $charset_collate;" );
+		) ENGINE=InnoDB $charset_collate;" );
 
 		/*---------------------------------------------------------------------*/
 		/*---------------------------------------------------------------------*/
@@ -96,7 +96,7 @@ class GFHANNANSMS_Pro_SQL {
 			reciever VARCHAR(255) NOT NULL,
 			message TEXT NOT NULL,
 			PRIMARY KEY  (id)
-		) $charset_collate;" );
+		) ENGINE=InnoDB $charset_collate;" );
 
 		/*---------------------------------------------------------------------*/
 		/*---------------------------------------------------------------------*/
@@ -125,7 +125,7 @@ class GFHANNANSMS_Pro_SQL {
 			status tinyint(1),
 			PRIMARY KEY  (id),
 			KEY form_id (form_id)
-		) $charset_collate;" );
+		) ENGINE=InnoDB $charset_collate;" );
 
 		/*---------------------------------------------------------------------*/
 		/*---------------------------------------------------------------------*/
@@ -215,7 +215,7 @@ class GFHANNANSMS_Pro_SQL {
 				"is_active" => $is_active,
 				"meta"      => $setting
 			), array( "%d", "%d", "%s" ) );
-			$id = $wpdb->get_var( "SELECT LAST_INSERT_ID()" );
+			$id = (int) $wpdb->insert_id;
 		} else {
 			$wpdb->update( $table_name, array(
 				"form_id"   => $form_id,
@@ -232,7 +232,7 @@ class GFHANNANSMS_Pro_SQL {
 
 		global $wpdb;
 		$table_name = self::main_table();
-		$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE id=%s", $id ) );
+		$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE id=%d", absint( $id ) ) );
 	}
 
 	public static function save_sms_sent( $form_id, $entry_id, $sender, $reciever, $message, $verify_code = '' ) {

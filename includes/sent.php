@@ -27,16 +27,16 @@ class GF_SMS_Sent_List_Table extends WP_List_Table {
 		switch ( $column_name ) {
 			case 'form_id':
 			case 'entry_id':
-				return ! empty( $item[ $column_name ] ) && is_numeric( str_replace( ',', '', $item[ $column_name ] ) ) ? $item[ $column_name ] : '-';
+				return ! empty( $item[ $column_name ] ) && is_numeric( str_replace( ',', '', $item[ $column_name ] ) ) ? esc_html( $item[ $column_name ] ) : '-';
 			case 'message':
-				return $item[ $column_name ];
+				return nl2br( esc_html( $item[ $column_name ] ) );
 			case 'date':
-				return date_i18n( 'Y-m-d H:i:s', strtotime( $item[ $column_name ] ) );
+				return esc_html( date_i18n( 'Y-m-d H:i:s', strtotime( $item[ $column_name ] ) ) );
 			case 'sender':
 			case 'reciever':
-				return '<div style="direction:ltr !important;text-align:' . $align . ';">' . $item[ $column_name ] . '</div>';
+				return '<div style="direction:ltr !important;text-align:' . esc_attr( $align ) . ';">' . esc_html( $item[ $column_name ] ) . '</div>';
 			default:
-				return print_r( $item, true );
+				return esc_html( print_r( $item, true ) );
 		}
 	}
 
@@ -70,12 +70,23 @@ class GF_SMS_Sent_List_Table extends WP_List_Table {
 	function column_date( $item ) {
 
 		$delete_nonce = wp_create_nonce( 'gf_delete_sms' );
+		$page         = isset( $_REQUEST['page'] ) ? sanitize_text_field( $_REQUEST['page'] ) : 'gf_hannansms';
 
 		$actions = array(
-			'delete' => sprintf( '<a href="?page=%s&view=sent&action=%s&item=%s&_wpnonce=%s">%s</a>', esc_attr( $_REQUEST['page'] ), 'delete', absint( $item['id'] ), $delete_nonce, __( 'Delete', 'GF_SMS' ) ),
+			'delete' => sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( add_query_arg( array(
+					'page'     => $page,
+					'view'     => 'sent',
+					'action'   => 'delete',
+					'item'     => absint( $item['id'] ),
+					'_wpnonce' => $delete_nonce,
+				), admin_url( 'admin.php' ) ) ),
+				esc_html__( 'Delete', 'GF_SMS' )
+			),
 		);
 
-		return sprintf( '%1$s %2$s', date_i18n( 'Y-m-d H:i:s', strtotime( $item['date'] ) ), $this->row_actions( $actions ) );
+		return sprintf( '%1$s %2$s', esc_html( date_i18n( 'Y-m-d H:i:s', strtotime( $item['date'] ) ) ), $this->row_actions( $actions ) );
 	}
 
 	function get_bulk_actions() {
@@ -88,7 +99,8 @@ class GF_SMS_Sent_List_Table extends WP_List_Table {
 
 	function column_cb( $item ) {
 		return sprintf(
-			'<input type="checkbox" name="item[]" value="%s" />', $item['id']
+			'<input type="checkbox" name="item[]" value="%d" />',
+			absint( $item['id'] )
 		);
 	}
 
@@ -116,20 +128,29 @@ class GF_SMS_Sent_List_Table extends WP_List_Table {
 	/**
 	 * Returns the count of records in the database.
 	 *
-	 * @return null|string
+	 * @return int
 	 */
 	public function record_count() {
 		global $wpdb;
 
 		$sent_table_name = GFHANNANSMS_Pro_SQL::sent_table();
 
-		$sql = "SELECT COUNT(*) FROM {$sent_table_name}";
-
-		if ( isset( $_REQUEST['id'] ) ) {
-			$sql .= ' WHERE `form_id` LIKE "%%' . $wpdb->esc_like( $_REQUEST['id'] ) . '%%"';
+		if ( isset( $_REQUEST['s'] ) && ! empty( trim( $_REQUEST['s'] ) ) ) {
+			$like = '%' . $wpdb->esc_like( sanitize_text_field( $_REQUEST['s'] ) ) . '%';
+			$sql  = $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$sent_table_name} WHERE `message` LIKE %s OR `reciever` LIKE %s OR `sender` LIKE %s",
+				$like,
+				$like,
+				$like
+			);
+			return (int) $wpdb->get_var( $sql );
+		} elseif ( isset( $_REQUEST['id'] ) && is_numeric( $_REQUEST['id'] ) ) {
+			$form_id = absint( $_REQUEST['id'] );
+			$sql     = $wpdb->prepare( "SELECT COUNT(*) FROM {$sent_table_name} WHERE `form_id` = %d", $form_id );
+			return (int) $wpdb->get_var( $sql );
 		}
 
-		return $wpdb->get_var( $sql );
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$sent_table_name}" );
 	}
 
 	public function process_bulk_action() {
@@ -138,28 +159,37 @@ class GF_SMS_Sent_List_Table extends WP_List_Table {
 
 		if ( 'delete' === $action ) {
 
-			if ( ! empty( $_REQUEST ) && ! wp_verify_nonce( sanitize_text_field( $_REQUEST['_wpnonce'] ), 'gf_delete_sms' ) ) {
-				die( __( 'Go get a life script kiddies', 'GF_SMS' ) );
+			if ( empty( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( $_REQUEST['_wpnonce'] ), 'gf_delete_sms' ) ) {
+				wp_die( esc_html__( 'Unauthorized request.', 'GF_SMS' ), 403 );
 			}
 
-
-			$this->delete_item( absint( $_REQUEST['item'] ) );
-
-			echo '<div class="updated notice is-dismissible below-h2"><p>' . __( 'Item removed.', 'GF_SMS' ) . '</p></div>';
-		} else if ( $action == 'bulk_delete' ) {
-
-			if ( ! empty( $_REQUEST ) && ! wp_verify_nonce( sanitize_text_field( $_REQUEST['_wpnonce'] ), 'bulk-' . $this->_args['plural'] ) ) {
-				die( __( 'Go get a life script kiddies', 'GF_SMS' ) );
+			if ( ! GFCommon::current_user_can_any( array( 'gravityforms_edit_forms', 'gravityforms_hannansms' ) ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete messages.', 'GF_SMS' ), 403 );
 			}
 
-
-			$delete_ids = isset( $_REQUEST['item'] ) ? esc_sql( $_REQUEST['item'] ) : array();
-			foreach ( (array) $delete_ids as $id ) {
-				$this->delete_item( absint( $id ) );
+			if ( ! empty( $_REQUEST['item'] ) ) {
+				$this->delete_item( absint( $_REQUEST['item'] ) );
+				echo '<div class="updated notice is-dismissible below-h2"><p>' . esc_html__( 'Item removed.', 'GF_SMS' ) . '</p></div>';
 			}
 
-			echo '<div class="updated notice is-dismissible below-h2"><p>' . __( 'Items removed.', 'GF_SMS' ) . '</p></div>';
+		} else if ( 'bulk_delete' === $action ) {
 
+			if ( empty( $_REQUEST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( $_REQUEST['_wpnonce'] ), 'bulk-' . $this->_args['plural'] ) ) {
+				wp_die( esc_html__( 'Unauthorized request.', 'GF_SMS' ), 403 );
+			}
+
+			if ( ! GFCommon::current_user_can_any( array( 'gravityforms_edit_forms', 'gravityforms_hannansms' ) ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete messages.', 'GF_SMS' ), 403 );
+			}
+
+			$delete_ids = isset( $_REQUEST['item'] ) && is_array( $_REQUEST['item'] ) ? array_map( 'absint', $_REQUEST['item'] ) : array();
+			foreach ( $delete_ids as $id ) {
+				if ( $id > 0 ) {
+					$this->delete_item( $id );
+				}
+			}
+
+			echo '<div class="updated notice is-dismissible below-h2"><p>' . esc_html__( 'Items removed.', 'GF_SMS' ) . '</p></div>';
 		}
 	}
 
@@ -174,7 +204,7 @@ class GF_SMS_Sent_List_Table extends WP_List_Table {
 
 		$sent_table_name = GFHANNANSMS_Pro_SQL::sent_table();
 
-		$wpdb->delete( $sent_table_name, array( 'id' => $id ) );
+		$wpdb->delete( $sent_table_name, array( 'id' => absint( $id ) ), array( '%d' ) );
 	}
 
 	/**
@@ -190,29 +220,42 @@ class GF_SMS_Sent_List_Table extends WP_List_Table {
 		global $wpdb;
 
 		$sent_table_name = GFHANNANSMS_Pro_SQL::sent_table();
+		$per_page        = absint( $per_page );
+		$page_number     = absint( $page_number );
+		$offset          = ( $page_number - 1 ) * $per_page;
 
-		$sql = "SELECT * FROM {$sent_table_name}";
+		// Whitelist sorting
+		$valid_columns = array( 'id', 'date', 'form_id', 'entry_id', 'sender', 'reciever', 'message' );
+		$orderby       = isset( $_REQUEST['orderby'] ) && in_array( $_REQUEST['orderby'], $valid_columns, true ) ? sanitize_key( $_REQUEST['orderby'] ) : 'id';
+		$order         = isset( $_REQUEST['order'] ) && strtolower( $_REQUEST['order'] ) === 'asc' ? 'ASC' : 'DESC';
 
-		if ( isset( $_REQUEST['s'] ) ) {
-			$sql .= ' WHERE `message` LIKE "%%' . $wpdb->esc_like( $_REQUEST['s'] ) . '%%" OR `reciever` LIKE "%%' . $wpdb->esc_like( $_REQUEST['s'] ) . '%%"  OR `sender` LIKE "%%' . $wpdb->esc_like( $_REQUEST['s'] ) . '%%"';
-		} else if ( isset( $_REQUEST['id'] ) ) {
-			$sql .= ' WHERE `form_id` LIKE "%%' . $wpdb->esc_like( $_REQUEST['id'] ) . '%%"';
-		}
-
-		if ( ! empty( $_REQUEST['orderby'] ) ) {
-			$sql .= ' ORDER BY ' . esc_sql( $_REQUEST['orderby'] );
-			$sql .= ! empty( $_REQUEST['order'] ) ? ' ' . esc_sql( $_REQUEST['order'] ) : ' ASC';
+		if ( isset( $_REQUEST['s'] ) && ! empty( trim( $_REQUEST['s'] ) ) ) {
+			$like = '%' . $wpdb->esc_like( sanitize_text_field( $_REQUEST['s'] ) ) . '%';
+			$sql  = $wpdb->prepare(
+				"SELECT * FROM {$sent_table_name} WHERE `message` LIKE %s OR `reciever` LIKE %s OR `sender` LIKE %s ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+				$like,
+				$like,
+				$like,
+				$per_page,
+				$offset
+			);
+		} elseif ( isset( $_REQUEST['id'] ) && is_numeric( $_REQUEST['id'] ) ) {
+			$form_id = absint( $_REQUEST['id'] );
+			$sql     = $wpdb->prepare(
+				"SELECT * FROM {$sent_table_name} WHERE `form_id` = %d ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+				$form_id,
+				$per_page,
+				$offset
+			);
 		} else {
-			$sql .= ' ORDER BY id DESC';
+			$sql = $wpdb->prepare(
+				"SELECT * FROM {$sent_table_name} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+				$per_page,
+				$offset
+			);
 		}
 
-		$sql .= " LIMIT $per_page";
-		$sql .= ' OFFSET ' . ( $page_number - 1 ) * $per_page;
-
-
-		$result = $wpdb->get_results( $sql, 'ARRAY_A' );
-
-		return $result;
+		return $wpdb->get_results( $sql, ARRAY_A );
 	}
 
 } //class
@@ -229,7 +272,7 @@ class GFHANNANSMS_Pro_Sent {
 
 			$form = RGFormsModel::get_form_meta( rgget( 'id' ) );
 			if ( ! empty( $form ) ) {
-				echo ' (' . $form['title'] . ')</h2>';
+				echo ' (' . esc_html( $form['title'] ) . ')</h2>';
 			} else {
 				echo '</h2>';
 			}

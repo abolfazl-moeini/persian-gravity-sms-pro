@@ -9,7 +9,6 @@ class GFHANNANSMS_Pro_Configurations {
 
 		if ( defined( 'RG_CURRENT_PAGE' ) && in_array( RG_CURRENT_PAGE, array( 'admin-ajax.php' ) ) ) {
 			add_action( 'wp_ajax_gf_select_hannansms_form', array( __CLASS__, 'select_forms_ajax' ) );
-			add_action( 'wp_ajax_nopriv_gf_select_hannansms_form', array( __CLASS__, 'select_forms_ajax' ) );
 		}
 	}
 
@@ -70,6 +69,10 @@ class GFHANNANSMS_Pro_Configurations {
 		if ( ! rgempty( "gf_hannansms_submit" ) ) {
 
 			check_admin_referer( "update", "gf_hannansms_feed" );
+
+			if ( ! GFCommon::current_user_can_any( array( 'gravityforms_edit_forms', 'gravityforms_hannansms' ) ) ) {
+				wp_die( esc_html__( 'You do not have permission to edit this feed.', 'GF_SMS' ), 403 );
+			}
 
 			$config["form_id"] = absint( rgpost( "gf_hannansms_form" ) );
 			if ( empty( $config["form_id"] ) && ! empty( $_get_form_id ) ) {
@@ -1334,6 +1337,11 @@ class GFHANNANSMS_Pro_Configurations {
 
 	public static function select_forms_ajax() {
 		check_ajax_referer( "gf_select_hannansms_form", "gf_select_hannansms_form" );
+
+		if ( ! GFCommon::current_user_can_any( array( 'gravityforms_edit_forms', 'gravityforms_hannansms' ) ) ) {
+			wp_die( -1, 403 );
+		}
+
 		$form_id        = intval( rgpost( "form_id" ) );
 		$form           = RGFormsModel::get_form_meta( $form_id );
 		$fields         = self::get_form_fields_merge( $form );

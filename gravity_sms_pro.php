@@ -19,7 +19,7 @@ if ( ! defined( 'GF_SMS_DIR' ) ) {
 }
 
 if ( ! defined( 'GF_SMS_URL' ) ) {
-	define( 'GF_SMS_URL', plugins_url( null, __FILE__ ) );
+	define( 'GF_SMS_URL', plugins_url( '', __FILE__ ) );
 }
 
 if ( ! defined( 'GF_SMS_GATEWAY' ) ) {
@@ -42,6 +42,17 @@ add_action( 'plugins_loaded', 'gravitysms_load_textdomain' );
 function gravitysms_load_textdomain() {
 	load_plugin_textdomain( 'GF_SMS', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 }
+
+add_filter( 'load_textdomain_mofile', function( $mofile, $domain ) {
+	if ( 'GF_SMS' === $domain ) {
+		$locale       = function_exists( 'determine_locale' ) ? determine_locale() : get_locale();
+		$local_mofile = GF_SMS_DIR . 'languages/GF_SMS-' . $locale . '.mo';
+		if ( file_exists( $local_mofile ) ) {
+			return $local_mofile;
+		}
+	}
+	return $mofile;
+}, 10, 2 );
 
 require_once( GF_SMS_DIR . 'includes/main.php' );
 

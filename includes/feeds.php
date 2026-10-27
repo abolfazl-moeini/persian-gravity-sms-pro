@@ -8,7 +8,6 @@ class GFHANNANSMS_Pro_Feeds {
 	public static function construct() {
 		if ( defined( 'RG_CURRENT_PAGE' ) && in_array( RG_CURRENT_PAGE, array( 'admin-ajax.php' ) ) ) {
 			add_action( 'wp_ajax_gf_feed_ajax_active', array( __CLASS__, 'ajax' ) );
-			add_action( 'wp_ajax_nopriv_gf_feed_ajax_active', array( __CLASS__, 'ajax' ) );
 		}
 
 		add_filter( 'gform_form_settings_menu', array( __CLASS__, 'toolbar' ), 10, 2 );
@@ -17,9 +16,15 @@ class GFHANNANSMS_Pro_Feeds {
 
 	public static function ajax() {
 		check_ajax_referer( 'gf_feed_ajax_active', 'gf_feed_ajax_active' );
-		$id   = rgpost( "feed_id" );
+		if ( ! GFCommon::current_user_can_any( array( 'gravityforms_edit_forms', 'gravityforms_hannansms' ) ) ) {
+			wp_die( -1, 403 );
+		}
+		$id   = absint( rgpost( "feed_id" ) );
 		$feed = GFHANNANSMS_Pro_SQL::get_feed( $id );
-		GFHANNANSMS_Pro_SQL::update_feed( $id, $feed["form_id"], rgpost( "is_active" ), $feed["meta"] );
+		if ( ! empty( $feed ) ) {
+			GFHANNANSMS_Pro_SQL::update_feed( $id, $feed["form_id"], rgpost( "is_active" ), $feed["meta"] );
+		}
+		wp_die();
 	}
 
 	public static function feeds( $arg ) {
@@ -41,6 +46,9 @@ class GFHANNANSMS_Pro_Feeds {
 
 		if ( rgpost( "action" ) == "delete" ) {
 			check_admin_referer( "list_action", "gf_hannansms_list" );
+			if ( ! GFCommon::current_user_can_any( array( 'gravityforms_edit_forms', 'gravityforms_hannansms' ) ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete feeds.', 'GF_SMS' ), 403 );
+			}
 			$id = absint( rgpost( "action_argument" ) );
 			GFHANNANSMS_Pro_SQL::remove_feed( $id ); ?>
             <div class="updated fade" style="padding:6px"><?php _e( "Feed deleted.", "GF_SMS" ) ?></div>
@@ -48,10 +56,13 @@ class GFHANNANSMS_Pro_Feeds {
 		} else if ( ! rgempty( "bulk_action" ) ) {
 
 			check_admin_referer( "list_action", "gf_hannansms_list" );
+			if ( ! GFCommon::current_user_can_any( array( 'gravityforms_edit_forms', 'gravityforms_hannansms' ) ) ) {
+				wp_die( esc_html__( 'You do not have permission to delete feeds.', 'GF_SMS' ), 403 );
+			}
 			$selected_feeds = rgpost( "feed" );
 			if ( is_array( $selected_feeds ) ) {
 				foreach ( (array) $selected_feeds as $feed_id ) {
-					GFHANNANSMS_Pro_SQL::remove_feed( $feed_id );
+					GFHANNANSMS_Pro_SQL::remove_feed( absint( $feed_id ) );
 				}
 			}
 			?>
