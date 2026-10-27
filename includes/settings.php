@@ -30,6 +30,10 @@ class GFHANNANSMS_Pro_Settings {
 
 	public static function settings() {
 
+		if ( ! function_exists( 'gform_tooltip' ) && class_exists( 'GFCommon' ) && file_exists( GFCommon::get_base_path() . '/tooltips.php' ) ) {
+			require_once GFCommon::get_base_path() . '/tooltips.php';
+		}
+
 		wp_enqueue_script('GF_SMS_Chosen', GF_SMS_URL . '/assets/chosen_v1.8.5/chosen.jquery.min.js', array(), true);
 		wp_enqueue_style('GF_SMS_Chosen', GF_SMS_URL . '/assets/chosen_v1.8.5/chosen.min.css');
 

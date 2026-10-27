@@ -11,6 +11,10 @@ class GFHANNANSMS_Pro {
 
 	public static function construct() {
 
+		if ( ! class_exists( 'RGForms' ) && class_exists( 'GFForms' ) ) {
+			class_alias( 'GFForms', 'RGForms' );
+		}
+
 		if ( function_exists( 'members_get_capabilities' ) ) {
 			add_filter( 'members_get_capabilities', array( __CLASS__, 'members_get_capabilities' ) );
 		}
@@ -76,13 +80,17 @@ class GFHANNANSMS_Pro {
 			if ( ! class_exists( 'GFHANNANSMS_Pro_Settings' ) ) {
 				require_once( GF_SMS_DIR . 'includes/settings.php' );
 			}
-			RGForms::add_settings_page( array(
-					'name'      => 'gf_sms_pro',
-					'tab_label' => __( 'SMS Settings', 'GF_SMS' ),
-					'title'     => __( 'Gravityforms SMS Pro', 'GF_SMS' ),
-					'handler'   => array( 'GFHANNANSMS_Pro_Settings', 'settings' ),
-				)
+			$settings_args = array(
+				'name'      => 'gf_sms_pro',
+				'tab_label' => __( 'SMS Settings', 'GF_SMS' ),
+				'title'     => __( 'Gravityforms SMS Pro', 'GF_SMS' ),
+				'handler'   => array( 'GFHANNANSMS_Pro_Settings', 'settings' ),
 			);
+			if ( class_exists( 'GFForms' ) ) {
+				GFForms::add_settings_page( $settings_args );
+			} elseif ( class_exists( 'RGForms' ) ) {
+				RGForms::add_settings_page( $settings_args );
+			}
 
 			if ( ! class_exists( 'GFHANNANSMS_Pro_Configurations' ) ) {
 				require_once( GF_SMS_DIR . 'includes/configurations.php' );

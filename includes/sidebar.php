@@ -95,7 +95,7 @@ class GFHANNANSMS_Pro_Entries_Sidebar {
 
 	public static function client_number_edit( $form_id, $entry ) {
 		$client_nums = self::get_phone_numbers( $form_id, $entry );
-		if ( rgpost( "save" ) && ( RGForms::post( "screen_mode" ) == "edit" || RGForms::post( "action" ) != "update" ) ) { ?>
+		if ( rgpost( "save" ) && ( rgpost( "screen_mode" ) == "edit" || rgpost( "action" ) != "update" ) ) { ?>
             <label for="hannansms_client_edit"><?php _e( 'Mobile number: ', 'GF_SMS' ) ?></label>
             <input type="text" name="hannansms_client_edit" id="hannansms_client_edit"
                    style="width:100%; text-align:left !important; direction:ltr !important;  padding:3px 5px;"

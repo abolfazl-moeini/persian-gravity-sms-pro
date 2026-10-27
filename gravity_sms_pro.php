@@ -26,6 +26,17 @@ if ( ! defined( 'GF_SMS_GATEWAY' ) ) {
 	define( 'GF_SMS_GATEWAY', plugin_dir_path( __FILE__ ) . 'includes/gateways/' );
 }
 
+// Gravity Forms 3.0+ removed the legacy RGForms alias for GFForms.
+if ( ! class_exists( 'RGForms' ) && class_exists( 'GFForms' ) ) {
+	class_alias( 'GFForms', 'RGForms' );
+}
+
+add_action( 'plugins_loaded', function() {
+	if ( ! class_exists( 'RGForms' ) && class_exists( 'GFForms' ) ) {
+		class_alias( 'GFForms', 'RGForms' );
+	}
+}, 1 );
+
 add_action( 'plugins_loaded', 'gravitysms_load_textdomain' );
 
 function gravitysms_load_textdomain() {
